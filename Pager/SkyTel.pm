@@ -1,6 +1,6 @@
 #
-# $Id: SkyTel.pm,v 1.8 2001-11-20 16:51:34-05 mprewitt Exp $
-# $Source: /usr/local/src/siteperl/SkyTel/0.1/Pager/RCS/SkyTel.pm,v $
+# $Id: SkyTel.pm,v 1.11 2002-12-16 14:39:54-05 mprewitt Exp $
+# $Source: /usr/local/src/perllib/SkyTel/0.1/Pager/RCS/SkyTel.pm,v $
 # $Locker:  $
 #
 # (C) 2001 Chelsea Networks/Marc Prewitt <mprewitt@chelsea.net>, under the GNU GPL.
@@ -60,11 +60,11 @@ L<URI>
 
 =head1 TODO
 
-Create disable forwarding method.
-
 Create get forwarding info method.
 
 Disable forwarding before trying to forward it? (doesn't seem like it's needed)
+
+x Create disable forwarding method (version 0.2.0).
 
 x Pin forwarding is not quite working.  Keeps saying it's already forwarded
 (try a different pin). Works fine.  Doesn't work if the other pin is already 
@@ -105,7 +105,7 @@ use Carp;
 
 use vars '$VERSION';
 
-$VERSION = (qw$Revision: 1.8 $)[1];
+$VERSION = (qw$Revision: 1.11 $)[1];
 my $DEBUG = 0;
 my $ERROR;
 
@@ -283,6 +283,68 @@ sub forward_voice {
     }
 
     return $self->_forward( __fwd_voice_url($forward_to, $date, $autocopy) );
+}
+
+=head1 disable_forward_all
+
+    my $success = $skytel->disable_forward_all( );
+
+Disables voice and text messaging forwarding.
+
+B<METHOD TYPE:> Instance
+
+B<PARAMETERS:>  None
+
+B<RETURN VALUES:> 1 if successfully forwarded in, undef if failure.
+
+=cut
+sub disable_forward_all {
+    my $self = shift;
+
+    return $self->disable_forward_text( ) && 
+        $self->disable_forward_voice( );
+}
+
+=head1 disable_forward_voice
+
+    my $success = $skytel->disable_forward_voice( );
+
+Disables voice message forwarding.
+
+B<METHOD TYPE:> Instance
+
+B<PARAMETERS:>  None
+
+B<RETURN VALUES:> 1 if successfully disabled, undef if failure.
+
+=cut
+sub disable_forward_voice {
+    my $self = shift;
+
+    print STDERR "Disabling voice message forwarding\n" if $DEBUG;
+
+    return $self->_forward( __dis_fwd_voice_url() );
+}
+
+=head1 disable_forward_text
+
+    my $success = $skytel->disable_forward_text( );
+
+Disables text message forwarding.
+
+B<METHOD TYPE:> Instance
+
+B<PARAMETERS:>  None
+
+B<RETURN VALUES:> 1 if successfully disabled, undef if failure.
+
+=cut
+sub disable_forward_text {
+    my $self = shift;
+
+    print STDERR "Disabling text message forwarding\n" if $DEBUG;
+
+    return $self->_forward( __dis_fwd_text_url() );
 }
 
 =head1 setDebug
@@ -546,6 +608,50 @@ sub __fwd_phone {
     return "Phone&forwardtext1=${area_code}&forwardtext2=${prefix}&forwardtext3=${suffix}";
 }
 
+=begin private __dis_fwd_text_url
+
+    $forward_text_url = __dis_fwd_text_url( )
+
+Returns the URL to disable text forwarding on the current account.
+
+=cut
+sub __dis_fwd_text_url {
+    return __dis_fwd_url(TEXT);
+}
+
+=begin private __dis_fwd_voice_url
+
+    $forward_text_url = __dis_fwd_voice_url( )
+
+Returns the URL to disable voice forwarding on the current account.
+
+=cut
+sub __dis_fwd_voice_url {
+    return __dis_fwd_url(VOICE);
+}
+
+=begin private __dis_fwd_url
+
+    $forward_page = __dis_fwd_url( $type );
+
+Returns the base of the URL for the page which disables message forwarding.
+
+$type - TEXT | VOICE
+
+=cut
+sub __dis_fwd_url {
+    my $type = shift;
+
+    my $submit;
+    if ( $type eq TEXT ) {
+	$submit = "B4";
+    } else {
+	$submit = "B5";
+    }
+
+    return __www() . "/servlet/CSChange${type}Forward?Submit=${submit}&${type}ForwardAction=Disable";
+}
+
 =begin private __send_request
 
     $success = $skytel->__send_request($uri)
@@ -564,20 +670,15 @@ sub __send_request {
     $self->{cookies}->add_cookie_header($request) if $self->{cookies};
 
     my $response = $self->{ua}->request($request);
+    print STDERR "Requesting: $uri\n" if $DEBUG;
     if ($response->is_error) {
 	return $self->_setError( $response->error_as_HTML );
     } elsif ($response->is_redirect) {
 	$self->{cookies}->extract_cookies($response);
 
         my $location = $response->headers->header('location');
-        my $new_uri;
-        # Add the server/protocol to $location if it isn't there
-        if ( $location =~ m|^https?://|i ) {
-            $new_uri = new URI( $location );
-        } else {
-            $new_uri = $uri->clone();
-            $new_uri->path_query($location);
-        }
+        my $new_uri = URI->new($location)->abs($uri);
+        print STDERR "Redirecting to: $new_uri [$location]\n" if $DEBUG;
         return $self->__send_request( $new_uri );
     } else {
 	$self->{cookies}->extract_cookies($response);

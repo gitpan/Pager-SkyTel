@@ -30,7 +30,7 @@ print OUT <<'!NO!SUBS!';
 #  (DO NOT EDIT fwd_skytel, instead edit fwd_skytel.PL and run make
 
 #
-# $Id: fwd_skytel.PL,v 1.7 2001-11-20 16:51:34-05 mprewitt Exp $
+# $Id: fwd_skytel.PL,v 1.9 2002-12-16 14:32:55-05 mprewitt Exp $
 #
 # (C) 2001 Chelsea Networks/Marc Prewitt <mprewitt@chelsea.net>, under the GNU GPL.
 # 
@@ -57,6 +57,8 @@ B<fwd_skytel> - Forwards a skytel pager to another pin, email or phone number.
 
     fwd_skytel --account={pin_number} [--pass={password}] --fwd={forward_to} --date={date} [--[no]copy]
 
+    fwd_skytel --account={pin_number} [--pass={password}] --disable
+
 Forwards the pager specified by B<--account> to the phone, email or pin specifed
 by B<--fwd>.  B<--fwd> is interpreted as an e-mail address if it contains an
 @ symbol, as a phone number if it contains dashes or parenthesis as in (212) 555-1212,
@@ -69,6 +71,9 @@ If B<--password> is not provided, it will be prompted for.
 
 B<--[no]copy]> turns on or off mailbox copy.  The default is to retail a copy
 of the forwarded message in your mailbox.
+
+The second form of the command with the B<--disable> option, turns off existing
+fowarding.
 
 Requires HTTP::Cookies, LWP::UserAgent, Date::Manip and Term::ReadKey;
 
@@ -116,6 +121,7 @@ file which comes with LWP::UserAgent (in the libwww-perl package.)
 =cut
 
 use strict;
+BEGIN { unshift @INC, "." };
 use Pager::SkyTel;
 use Getopt::Long;
 use Term::ReadKey;
@@ -124,20 +130,22 @@ use vars '$VERSION';
 
 $VERSION = '0.0.1';
 
-my ($account, $pass, $fwd_pin, $date, $copy, $verbose );
+my ($account, $pass, $fwd_pin, $date, $copy, $verbose, $disable );
 $copy = 1;
 
 GetOptions(
 	"account|pin=i" => \$account,
 	"copy!" => \$copy,
 	"pass:s" => \$pass,
-	"fwd=s" => \$fwd_pin,
-	"date=s" => \$date,
-        "verbose!" => \$verbose
+	"fwd:s" => \$fwd_pin,
+	"date:s" => \$date,
+        "verbose!" => \$verbose,
+        "disable!" => \$disable
 	) || exit Usage();
 
 sub Usage {
-    print "Usage: fwd_skytel --account={pin_number} [--pass={password}] --fwd={forward_to} --date={date} [--verbose]\n";
+    print "Usage: fwd_skytel --account={pin_number} [--pass={password}] --fwd={forward_to} --date={date} [--verbose]\n\n";
+    print "Usage: fwd_skytel --account={pin_number} [--pass={password}] --disable\n";
     return 2;
 }
 
@@ -158,14 +166,25 @@ Pager::SkyTel::setDebug(1) if $verbose;
 
 my $sky = Pager::SkyTel->new( $account, $pass );
 
-if ( $copy ) {
-    $copy = Pager::SkyTel::COPY_ENABLE;
+if ($disable) {
+    if ( $fwd_pin || $date ) {
+        print STDERR "Cannot use --fwd or --date option with --disable option\n";
+        exit Usage();
+    }
+    $sky->disable_forward_all() || die "Unable to disable forwarding.\n    " . $sky->getError;
 } else {
-    $copy = Pager::SkyTel::COPY_DISABLE;
+    if ( $disable ) {
+        print STDERR "Cannot use --disable option with --fwd option\n";
+        exit Usage();
+    }
+    if ( $copy ) {
+        $copy = Pager::SkyTel::COPY_ENABLE;
+    } else {
+        $copy = Pager::SkyTel::COPY_DISABLE;
+    }
+
+    $sky->forward_all( $fwd_pin, $date, $copy ) || die "Unable to forward.\n    " . $sky->getError;
 }
-
-$sky->forward_all( $fwd_pin, $date, $copy ) || die "Unable to forward.\n    " . $sky->getError;
-
 exit 0;
 
 END {
