@@ -1,12 +1,12 @@
 #  See lib/ExtUtils/MakeMaker.pm for details of how to influence
 #  the contents of the Makefile that is written.
 #
-# $Id: Makefile.PL,v 1.4 2001-11-19 16:53:55-05 mprewitt Exp $
+# $Id: Makefile.PL,v 1.5 2001-11-20 17:04:46-05 mprewitt Exp $
 #
 use ExtUtils::MakeMaker;
 use strict;
 
-my $version = "0.1.1";
+my $version = "0.1.2";
 
 WriteMakefile(
     NAME        => 'Pager',
