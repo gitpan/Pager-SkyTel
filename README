@@ -1,0 +1,62 @@
+Pager::SkyTel
+
+Description:
+
+Pager::SkyTel.pm is the beginnings of a module to control the account 
+options for a SkyTel pager from a perl script.  Currently, 
+Pager::SkyTel.pm implements the forwarding features available on the 
+SkyTel customer service website.
+
+fwd_skytel is a script which uses Pager::SkyTel.pm to forward a skytel 
+pager to another pager, e-mail address or phone number.
+
+Required Modules:
+
+  HTTP::Cookies - For maintaining login state with the SkyTel web server
+
+  LWP::UserAgent - For communicating with the SkyTel web server.
+
+  URI - For manipulating URLs.
+
+  Date::Manip - For flexible date formats including formats like 
+  '3 weeks from today'.
+
+Windows Users: 
+
+You need to set a TZ variable to your timezone for the date calculations 
+to work correctly.  To do this, open the properties of "My Computer" 
+and set a SYSTEM variable TZ to your timezone.  I suggest using the
+form "EST5EDT" so you don't have to change it every 6 months when going
+to or from daylight savings time.
+
+SSL/HTTPS Notes:
+
+If you receive the message: "501 Protocol scheme 'https' is not supported"
+you do not have SSL installed and Pager::SkyTel will not be able to communicate
+with the SkyTel web server.  Pager::SkyTel uses LWP::UserAgent for it's https 
+support which in turn uses either IO::Socket::SSL or Crypt::SSLeay.  Therefore,
+if you install one of them, things should work much better.  See the README.SSL
+file which comes with LWP::UserAgent (in the libwww-perl package.)
+
+Bugs/Comments To:
+
+Marc Prewitt <mprewitt@chelsea.net>
+
+----------------------------------------------------------------------------
+
+(C) 2001 Chelsea Networks/Marc Prewitt <mprewitt@chelsea.net>, under the 
+GNU GPL.
+
+This is free software; you can redistribute it and/or modify it under the 
+terms of the GNU General Public License as published by the Free Software 
+Foundation; either version 2, or (at your option) any later version.
+
+This is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more 
+details.
+
+You may have received a copy of the GNU General Public License along with 
+fwd_skytel see the file COPYING.  If not, write to the Free Software 
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
